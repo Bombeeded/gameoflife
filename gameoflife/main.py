@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.image as img
 import pygame, pygame.freetype, sys, random
 from pygame.locals import *
 
@@ -7,12 +8,11 @@ pygame.init()
 pygame.freetype.init()
 clock = pygame.time.Clock()
 programFont = pygame.freetype.Font(file="Arial Unicode.ttf", size=12)
-pygame.freetype.set_default_resolution(200)
-cell_num = 50
+pygame.freetype.set_default_resolution(160)
+cell_num = 50   #to fit cleanly, width/cell num must be an integer
 
 #initialize graphics
 FPS = 60
-
 background_color = (92, 36, 115)
 cell_color = (222, 235, 40)
 white = (255,255,255)
@@ -134,6 +134,7 @@ class board(np.ndarray):
                 pass
                 
     def iterate(self):
+        self.frameCount += 1
         for x in self.x_list:
             for y in self.y_list:
                 self.evaluate((x,y))
@@ -145,19 +146,22 @@ class board(np.ndarray):
         for x in self.x_list:
             for y in self.y_list:
                 self[x,y] = random.choice((0,1))
+    
+    def import_boardImage(self,file):
+        np.copyto(self, np.ascontiguousarray(img.imread(file),dtype=int))
 
 #initial board conditions
 playground = board((cell_num,cell_num))
-playground.randomize_board()
-playground.board_initalize()
+#playground.randomize_board()
+playground.import_boardImage("simpleglider.png")
+#playground.board_initalize()
 
-#create menu
+#control logic
 pause_state = 0 #0 is unpaused, 1 is paused
 def pause(x):
     if x == 1:
         x = 0
         return x
-
     if x == 0:
         x = 1
         return x
@@ -178,7 +182,7 @@ def changeFPS(x,key):
     else:
         return x
         
-        
+#text rendering functions
 def render_framecount():
     frameCount_text = "Frame count: " + str(playground.frameCount)
     programFont.render_to(DISPLAYSURF, (505,5), frameCount_text, black)
@@ -202,8 +206,6 @@ if __name__ == "__main__":
             pygame.display.update()
             clock.tick(FPS)
             playground.iterate()
-
-            playground.frameCount += 1
 
             #update menu
             pygame.draw.rect(DISPLAYSURF, white, (width,0,menu_buffer,height)) #redraw menu
