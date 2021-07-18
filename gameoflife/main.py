@@ -1,6 +1,10 @@
+import sys
+import random
+
 import numpy as np
 import matplotlib.image as img
-import pygame, pygame.freetype, sys, random
+import pygame
+import pygame.freetype
 from pygame.locals import *
 
 #initialize board
@@ -28,7 +32,7 @@ DISPLAYSURF = pygame.display.set_mode((width+menu_buffer,height))
 DISPLAYSURF.fill(background_color)
 pygame.display.set_caption("The Game of Life")
 
-class board(np.ndarray):
+class Board(np.ndarray):
     def draw(self,point):      
         pygame.draw.rect(DISPLAYSURF, cell_color, (point[1]*cell_width,point[0]*cell_width,cell_width,cell_width))
         self[point] = 1
@@ -147,13 +151,93 @@ class board(np.ndarray):
             for y in self.y_list:
                 self[x,y] = random.choice((0,1))
     
-    def import_boardImage(self,file):
+    def import_board_image(self,file):
         np.copyto(self, np.ascontiguousarray(img.imread(file),dtype=int))
+    
+    def read_config(self):
+        config = open('config.txt')
+        for line in config:
+            if line[0] == '#':
+                if line[1] == 'X':
+                    wordlist = line.split()
+                    imported_xpos = int(wordlist[1])
+                if line[1] == 'Y':
+                    wordlist = line.split()
+                    imported_ypos = int(wordlist[1])
+            elif line[0] == 'x':
+                wordlist = line.split()
+                imported_height = wordlist[5]
+                imported_height = int(imported_height[:-1])
+                imported_width = wordlist[2]
+                imported_width = int(imported_width[:-1])
+            else:
+                imported_array = np.zeros((imported_height,imported_width))
+                i = 0 #across coordinates i.e. x
+                j = 0 #up/down coordinates i.e. y
+                charcount = 0 #character counter
+                #logic handling code decrypting below
+                howmanytimes = -1 #essentially turns off the howmanytimes variable for the character
+                def magic(numList):
+                    s = ''.join(map(str, numList))
+                    return int(s)
+                def recursive_number_checker(digit):
+                    nonlocal charcount
+                    digit.append(int(char))
+                    if line[charcount+1].isnumeric():
+                        charcount += 1
+                        recursive_number_checker(digit)
+                for char in line:
+                    print(char + str((i,j)))
+                    #essentially turns off the howmanytimes variable for the character
+                    #check if char is a number. if so, iterate the next non-number more times 
+                    if char.isnumeric():
+                        digit = []
+                        recursive_number_checker(digit)
+                        howmanytimes = magic(digit)
+                    if char == 'b':
+                        if howmanytimes == -1:
+                            imported_array[j,i] = 0
+                            i += 1
+                        else:
+                            s = 0
+                            while s < howmanytimes:
+                                imported_array[j,i] = 0
+                                s += 1
+                                i += 1
+                            howmanytimes = -1
+                    if char == 'o':
+                        if howmanytimes == -1:
+                            imported_array[j,i] = 1
+                            i += 1
+                        else:
+                            s = 0
+                            while s < howmanytimes:
+                                imported_array[j,i] = 1
+                                s += 1
+                                i += 1
+                            howmanytimes = -1
+                    if char == '$':
+                        if howmanytimes == -1:
+                            j += 1
+                        else:
+                            j += howmanytimes
+                            howmanytimes = -1
+                        i = 0
+                    if char == '!':
+                        break
+                    charcount += 1
+        config.close()
+        return imported_array,imported_xpos,imported_ypos
+
+    def paste(self,block,xpos,ypos): #paste array into section of self
+        self[xpos:xpos+block.shape[0], ypos:ypos+block.shape[1]] = block
 
 #initial board conditions
-playground = board((cell_num,cell_num))
+playground = Board((cell_num,cell_num))
 #playground.randomize_board()
-playground.import_boardImage("simpleglider.png")
+(import_obj,xpos,ypos) = playground.read_config()
+import_obj = np.rot90(import_obj)
+playground.paste(import_obj,xpos,ypos)
 #playground.board_initalize()
 
 #control logic

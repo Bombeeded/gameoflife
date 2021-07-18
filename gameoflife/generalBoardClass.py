@@ -17,7 +17,7 @@ done!!
 """
 
 
-class board(np.ndarray):
+class Board(np.ndarray):
     def draw(self,point):      
         self[point] = 1
 
@@ -129,15 +129,19 @@ class board(np.ndarray):
     """
     Below are board initialization methods. 
     
-    randomize_board creates a random board, from which so called "ash objects" will appear.
+    randomize_board() creates a random board, from which so called "ash objects" will appear.
     Ash objects are objects that are randomly generated via cellular automation from a randomized board.
 
-    import_boardImage will take a black (dead) and white (alive) image with appropriate pixel dimensions 
+    import_board_image() will take a black (dead) and white (alive) image with appropriate pixel dimensions 
     for the board and import it as the initial board. Depending on the specific file type, modifications
     may be required in order for the import process to work properly. Common issues are the image
     being imported as a 3 dimensional array, in which case slices would have to be taken. It may also 
     potentially result that the array will need to be organized such that the maximum value within the
     array is 1, the minimum 0, and clasify the entire board as an integer (i.e. binary board configuration).
+
+    read_config() reads a file titled config.txt. Config.txt should be in .rle format and can optionally
+    contain a #X and #Y tag that define the position on the board of the object. paste() is used for pasting
+    such an object into any specific location.
     """
 
     def randomize_board(self):
@@ -145,5 +149,83 @@ class board(np.ndarray):
             for y in self.y_list:
                 self[x,y] = random.choice((0,1))
     
-    def import_boardImage(self,file):
+    def import_board_image(self,file):
         np.copyto(self, np.ascontiguousarray(img.imread(file),dtype=int))
+    
+    def read_config(self):
+        config = open('config.txt')
+        for line in config:
+            if line[0] == '#':
+                if line[1] == 'X':
+                    wordlist = line.split()
+                    imported_xpos = int(wordlist[1])
+                if line[1] == 'Y':
+                    wordlist = line.split()
+                    imported_ypos = int(wordlist[1])
+            elif line[0] == 'x':
+                wordlist = line.split()
+                imported_height = wordlist[5]
+                imported_height = int(imported_height[:-1])
+                imported_width = wordlist[2]
+                imported_width = int(imported_width[:-1])
+            else:
+                imported_array = np.zeros((imported_height,imported_width))
+                i = 0 #across coordinates i.e. x
+                j = 0 #up/down coordinates i.e. y
+                charcount = 0 #character counter
+                #logic handling code decrypting below
+                howmanytimes = -1 #essentially turns off the howmanytimes variable for the character
+                def magic(numList):
+                    s = ''.join(map(str, numList))
+                    return int(s)
+                def recursive_number_checker(digit):
+                    nonlocal charcount
+                    digit.append(int(char))
+                    if line[charcount+1].isnumeric():
+                        charcount += 1
+                        recursive_number_checker(digit)
+                for char in line:
+                    print(char + str((i,j)))
+                    #essentially turns off the howmanytimes variable for the character
+                    #check if char is a number. if so, iterate the next non-number more times 
+                    if char.isnumeric():
+                        digit = []
+                        recursive_number_checker(digit)
+                        howmanytimes = magic(digit)
+                    if char == 'b':
+                        if howmanytimes == -1:
+                            imported_array[j,i] = 0
+                            i += 1
+                        else:
+                            s = 0
+                            while s < howmanytimes:
+                                imported_array[j,i] = 0
+                                s += 1
+                                i += 1
+                            howmanytimes = -1
+                    if char == 'o':
+                        if howmanytimes == -1:
+                            imported_array[j,i] = 1
+                            i += 1
+                        else:
+                            s = 0
+                            while s < howmanytimes:
+                                imported_array[j,i] = 1
+                                s += 1
+                                i += 1
+                            howmanytimes = -1
+                    if char == '$':
+                        if howmanytimes == -1:
+                            j += 1
+                        else:
+                            j += howmanytimes
+                            howmanytimes = -1
+                        i = 0
+                    if char == '!':
+                        break
+                    charcount += 1
+        config.close()
+        return imported_array,imported_xpos,imported_ypos,imported_height,imported_width
+
+    def paste(self,block,xpos,ypos): #paste array into section of self
+        self[xpos:xpos+block.shape[0], ypos:ypos+block.shape[1]] = block
