@@ -156,6 +156,21 @@ class Board(np.ndarray):
     
     def read_config(self):
         config = open('config.txt')
+        imported_xpos = 0
+        imported_ypos = 0
+        i = 0 #across coordinates i.e. x
+        j = 0 #up/down coordinates i.e. y
+        howmanytimes = -1 #essentially turns off the howmanytimes variable for the character
+        def convert_num_list(numList):
+            s = [str(i) for i in numList]
+            res = int("".join(s))
+            return res
+        def recursive_number_checker(digit):
+            nonlocal charcount
+            digit.append(int(line[charcount]))
+            if line[charcount+1].isnumeric():
+                charcount += 1
+                recursive_number_checker(digit)
         for line in config:
             if line[0] == '#':
                 if line[1] == 'X':
@@ -170,61 +185,56 @@ class Board(np.ndarray):
                 imported_height = int(imported_height[:-1])
                 imported_width = wordlist[2]
                 imported_width = int(imported_width[:-1])
-            else:
                 imported_array = np.zeros((imported_height,imported_width))
-                i = 0 #across coordinates i.e. x
-                j = 0 #up/down coordinates i.e. y
+            else:
                 charcount = 0 #character counter
-                #logic handling code decrypting below
-                howmanytimes = -1 #essentially turns off the howmanytimes variable for the character
-                def magic(numList):
-                    s = ''.join(map(str, numList))
-                    return int(s)
-                def recursive_number_checker(digit):
-                    nonlocal charcount
-                    digit.append(int(char))
-                    if line[charcount+1].isnumeric():
-                        charcount += 1
-                        recursive_number_checker(digit)
-                for char in line:
-                    print(char + str((i,j)))
-                    #essentially turns off the howmanytimes variable for the character
+                while True:
+                    print (charcount)
+                    char = line[charcount]
+                    print(char, j, i)
                     #check if char is a number. if so, iterate the next non-number more times 
                     if char.isnumeric():
                         digit = []
                         recursive_number_checker(digit)
-                        howmanytimes = magic(digit)
-                    if char == 'b':
+                        howmanytimes = convert_num_list(digit)
+                    elif char == 'b':
                         if howmanytimes == -1:
                             imported_array[j,i] = 0
                             i += 1
                         else:
                             s = 0
+                            print(howmanytimes)
                             while s < howmanytimes:
                                 imported_array[j,i] = 0
                                 s += 1
                                 i += 1
                             howmanytimes = -1
-                    if char == 'o':
+                    elif char == 'o':
                         if howmanytimes == -1:
                             imported_array[j,i] = 1
                             i += 1
                         else:
                             s = 0
+                            print(howmanytimes)
                             while s < howmanytimes:
                                 imported_array[j,i] = 1
                                 s += 1
                                 i += 1
                             howmanytimes = -1
-                    if char == '$':
+                    elif char == '$':
+                        print('encountered $')
                         if howmanytimes == -1:
                             j += 1
                         else:
                             j += howmanytimes
                             howmanytimes = -1
                         i = 0
-                    if char == '!':
+                    elif char == '!':
                         break
+                        charcount += 1
+                    else:
+                        break
+                        charcount += -1
                     charcount += 1
         config.close()
         return imported_array,imported_xpos,imported_ypos
